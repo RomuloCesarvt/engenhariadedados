@@ -1,0 +1,44 @@
+# Node
+node_modules/
+.next/
+out/
+build/
+dist/
+npm-debug.log
+yarn-error.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+.env
+
+# Output files
+output/*.csv
+output/*.json
+!output/.gitkeep
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo

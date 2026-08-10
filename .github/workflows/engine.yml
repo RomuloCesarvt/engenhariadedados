@@ -1,0 +1,39 @@
+name: Lead Recon Engine
+
+on:
+  schedule:
+    - cron: '0 * * * *' # Roda a cada 1 hora
+  workflow_dispatch: # Permite rodar manualmente no painel do GitHub
+
+jobs:
+  run-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          cd engine
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Lead Recon Engine
+        env:
+          CV_CRM_URL: ${{ secrets.CV_CRM_URL }}
+          CV_CRM_EMAIL: ${{ secrets.CV_CRM_EMAIL }}
+          CV_CRM_TOKEN: ${{ secrets.CV_CRM_TOKEN }}
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
+          RD_STATION_API_TOKEN: ${{ secrets.RD_STATION_API_TOKEN }}
+          BEEVIRAL_API_KEY: ${{ secrets.BEEVIRAL_API_KEY }}
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+        run: |
+          cd engine
+          python main.py
