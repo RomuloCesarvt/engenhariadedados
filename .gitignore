@@ -6,6 +6,7 @@ build/
 dist/
 npm-debug.log
 yarn-error.log
+.runtime/
 
 # Python
 __pycache__/
@@ -42,3 +43,25 @@ output/*.json
 .vscode/
 *.swp
 *.swo
+
+# Código do dashboard: a regra Python "lib/" acima não pode esconder dashboard/src/lib
+!dashboard/src/lib/
+
+# Credenciais do dashboard
+.env.local
+.env*.local
+
+# Chaves de conta de serviço do Google (Ads e Analytics)
+engine/credenciais/
+*.serviceaccount.json
+
+# Planilhas de vendas carregadas pelo dashboard (contêm CPF e contatos de clientes)
+output/uploads/
+
+# Bases baixadas das integrações (contêm dados de clientes)
+output/bases/
+
+# Análise de vendas × leads online: cache do CV e as planilhas (contêm nomes de clientes)
+output/analises/
+output/relatorios/
+dashboard/.cache/

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Play, CheckCircle2, Loader2, Calendar, Server, Database, Sparkles } from 'lucide-react';
+import { X, Play, CheckCircle2, Loader2, Sparkles, AlertTriangle } from 'lucide-react';
 import { GlobalReconciliationReport } from '../types';
+import { triggerAnalysis } from '../lib/dataService';
 
 interface TriggerAnalysisModalProps {
   isOpen: boolean;
@@ -13,151 +14,67 @@ export const TriggerAnalysisModal: React.FC<TriggerAnalysisModalProps> = ({
   onClose,
   onRunSuccess,
 }) => {
-  const [startDate, setStartDate] = useState('2026-07-20');
-  const [endDate, setEndDate] = useState('2026-07-27');
+  // Default date range: last 7 days
+  const today = new Date().toISOString().slice(0, 10);
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const [startDate, setStartDate] = useState(sevenDaysAgo);
+  const [endDate, setEndDate] = useState(today);
   const [isRunning, setIsRunning] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const steps = [
-    "Iniciando GitHub Action runner Python...",
-    "Extraindo Meta Ads, Google Ads, RD Station, BeeViral e Planilhas BI...",
+    "Conectando ao backend Python...",
+    "Extraindo leads de Meta Ads, Google Ads, RD Station, BeeViral e Planilhas BI...",
     "Consultando CRM Construtor de Vendas (CV)...",
     "Executando Algoritmo Híbrido de Sanitização e Matching...",
-    "Persistindo resultados no Firebase Firestore..."
+    "Gerando relatório e salvando no Firebase Firestore...",
   ];
 
-  const handleRun = () => {
+  const handleRun = async () => {
     setIsRunning(true);
     setCurrentStep(0);
+    setError(null);
 
+    // Animate through steps while waiting for real API response
     let step = 0;
     const interval = setInterval(() => {
       step += 1;
       if (step < steps.length) {
         setCurrentStep(step);
-      } else {
-        clearInterval(interval);
-        setIsRunning(false);
-        // Gera relatório atualizado
-        const updatedReport: GlobalReconciliationReport = {
-          execution_id: `exec_${Date.now()}`,
-          timestamp: new Date().toISOString(),
-          start_date: startDate,
-          end_date: endDate,
-          total_source_leads: 24,
-          total_cv_leads: 23,
-          total_reconciled_ok: 22,
-          total_missing_in_cv: 1,
-          total_origin_mismatch: 1,
-          overall_adherence_rate: 91.7,
-          overall_health: "WARNING",
-          channels: [
-            {
-              channel: "meta_ads",
-              total_source_leads: 8,
-              total_cv_leads: 8,
-              match_ok_count: 7,
-              missing_in_cv_count: 0,
-              origin_mismatch_count: 1,
-              latency_delay_count: 0,
-              pending_sync_count: 0,
-              adherence_rate: 87.5,
-              health_status: "WARNING"
-            },
-            {
-              channel: "google_ads",
-              total_source_leads: 5,
-              total_cv_leads: 5,
-              match_ok_count: 5,
-              missing_in_cv_count: 0,
-              origin_mismatch_count: 0,
-              latency_delay_count: 0,
-              pending_sync_count: 0,
-              adherence_rate: 100.0,
-              health_status: "HEALTHY"
-            },
-            {
-              channel: "rd_station",
-              total_source_leads: 5,
-              total_cv_leads: 5,
-              match_ok_count: 5,
-              missing_in_cv_count: 0,
-              origin_mismatch_count: 0,
-              latency_delay_count: 0,
-              pending_sync_count: 0,
-              adherence_rate: 100.0,
-              health_status: "HEALTHY"
-            },
-            {
-              channel: "beeviral",
-              total_source_leads: 4,
-              total_cv_leads: 3,
-              match_ok_count: 3,
-              missing_in_cv_count: 1,
-              origin_mismatch_count: 0,
-              latency_delay_count: 0,
-              pending_sync_count: 0,
-              adherence_rate: 75.0,
-              health_status: "CRITICAL"
-            },
-            {
-              channel: "sheets_bi",
-              total_source_leads: 2,
-              total_cv_leads: 2,
-              match_ok_count: 2,
-              missing_in_cv_count: 0,
-              origin_mismatch_count: 0,
-              latency_delay_count: 0,
-              pending_sync_count: 0,
-              adherence_rate: 100.0,
-              health_status: "HEALTHY"
-            }
-          ],
-          divergences: [
-            {
-              id: `div_bee_${Date.now()}`,
-              source_lead_id: "bee_new_901",
-              email: "novo.indicado.beeviral@gmail.com",
-              phone: "5511977770000",
-              origin_channel: "beeviral",
-              divergence_type: "MISSING_IN_CV",
-              severity: "HIGH",
-              details: "Lead indicado via BeeViral ausente no CRM Construtor de Vendas.",
-              source_created_at: new Date().toISOString(),
-              integration_id: "bee_ref_901"
-            },
-            {
-              id: `div_meta_${Date.now()}`,
-              source_lead_id: "meta_106",
-              email: "juliana.mendes@yahoo.com.br",
-              phone: "5511944446666",
-              origin_channel: "meta_ads",
-              divergence_type: "ORIGIN_MISMATCH",
-              severity: "MEDIUM",
-              details: "Lead capturado no META_ADS, mas registrado no CV como 'Google Ads'.",
-              source_created_at: "2026-07-27T08:10:00Z",
-              cv_created_at: "2026-07-27T08:12:00Z",
-              origem_no_cv: "Google Ads",
-              integration_id: "fb_click_106"
-            }
-          ]
-        };
-
-        onRunSuccess(updatedReport);
-        onClose();
       }
-    }, 1200);
+    }, 2500);
+
+    try {
+      const response = await triggerAnalysis(startDate, endDate);
+
+      clearInterval(interval);
+      setCurrentStep(steps.length); // All steps done
+      setIsRunning(false);
+
+      // Small delay to show final state, then close
+      setTimeout(() => {
+        onRunSuccess(response.report);
+        onClose();
+        setCurrentStep(0);
+      }, 800);
+    } catch (err: any) {
+      clearInterval(interval);
+      setIsRunning(false);
+      setError(err.message || 'Erro desconhecido ao executar a engine.');
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
-      <div className="glass-panel w-full max-w-lg rounded-2xl p-6 border border-slate-700 shadow-2xl relative">
+    <div className="theme-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+      <div className="theme-modal-panel glass-panel w-full max-w-lg rounded-2xl p-6 border border-slate-700 shadow-2xl relative bg-slate-900/95">
         <button
           onClick={onClose}
           disabled={isRunning}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 transition-colors"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-30"
         >
           <X className="w-5 h-5" />
         </button>
@@ -168,11 +85,21 @@ export const TriggerAnalysisModal: React.FC<TriggerAnalysisModalProps> = ({
           </div>
           <div>
             <h3 className="text-lg font-bold text-white">Disparar Análise Sob Demanda</h3>
-            <p className="text-xs text-slate-400">Executa o pipeline Python via GitHub Actions e atualiza o Firestore</p>
+            <p className="text-xs text-slate-400">Executa o pipeline Python real e atualiza os dados do dashboard</p>
           </div>
         </div>
 
-        {!isRunning ? (
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start space-x-2">
+            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-bold text-rose-400 mb-0.5">Erro na Execução</p>
+              <p className="text-[11px] text-rose-300/80 leading-relaxed">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {!isRunning && currentStep < steps.length ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -198,9 +125,9 @@ export const TriggerAnalysisModal: React.FC<TriggerAnalysisModalProps> = ({
             <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-xs text-slate-400 space-y-1">
               <div className="font-semibold text-slate-300 flex items-center space-x-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Fontes Inspecionadas:</span>
+                <span>Pipeline Real:</span>
               </div>
-              <p>Meta Ads, Google Ads, RD Station, BeeViral, Planilhas BI & CRM CV.</p>
+              <p>Extrai leads reais de Meta Ads, Google Ads, RD Station, BeeViral, Planilhas BI &amp; cruza com CRM CV.</p>
             </div>
 
             <div className="pt-2 flex justify-end space-x-3">
@@ -221,8 +148,17 @@ export const TriggerAnalysisModal: React.FC<TriggerAnalysisModalProps> = ({
         ) : (
           <div className="py-6 space-y-4">
             <div className="flex items-center justify-center space-x-3">
-              <Loader2 className="w-6 h-6 text-sky-400 animate-spin" />
-              <span className="text-sm font-semibold text-slate-200">Processando Reconciliação...</span>
+              {currentStep >= steps.length ? (
+                <>
+                  <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                  <span className="text-sm font-semibold text-emerald-300">Análise Concluída!</span>
+                </>
+              ) : (
+                <>
+                  <Loader2 className="w-6 h-6 text-sky-400 animate-spin" />
+                  <span className="text-sm font-semibold text-slate-200">Executando Pipeline Real...</span>
+                </>
+              )}
             </div>
 
             <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 space-y-2">

@@ -3,18 +3,20 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/start-local.mjs dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node scripts/start-local.mjs start",
+    "status:local": "node scripts/start-local.mjs status",
     "lint": "next lint"
   },
   "dependencies": {
+    "clsx": "^2.1.0",
+    "html-to-image": "^1.11.13",
+    "lucide-react": "^0.330.0",
     "next": "^14.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "lucide-react": "^0.330.0",
     "recharts": "^2.12.0",
-    "clsx": "^2.1.0",
     "tailwind-merge": "^2.2.1"
   },
   "devDependencies": {
