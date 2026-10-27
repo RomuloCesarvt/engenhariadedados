@@ -3,9 +3,9 @@ CLI Entrypoint para execução da Reconciliação Sob Demanda.
 """
 
 import argparse
+import json
 import os
 import sys
-from datetime import datetime, timedelta, timezone
 
 # Configura codificação UTF-8 para stdout no Windows
 if hasattr(sys.stdout, "reconfigure"):
@@ -20,21 +20,18 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 # Carrega variáveis de ambiente de um arquivo .env se existir
 try:
     from dotenv import load_dotenv
+
     load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
     load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 except ImportError:
     pass
 
-from engine.extractors import (
-    MetaAdsExtractor,
-    GoogleAdsExtractor,
-    RDStationExtractor,
-    BeeViralExtractor,
-    SheetsBIExtractor,
-    CVCRMExtractor,
-)
-from engine.reconciler import LeadReconciler
-from engine.exporter import ReportExporter
+from engine.extractors import CVCRMExtractor
+from engine.pipeline import resolve_period, run_pipeline
+from engine.sales_auditor import DEFAULT_ATTRIBUTION_WINDOW_DAYS
+
+MODE_ICON = {"real": "✅", "simulado": "🧪", "erro": "❌", "nao_configurado": "⚪"}
+LINHA = "========================================================================"
 
 
 def main():
@@ -42,61 +39,105 @@ def main():
     parser.add_argument("--start-date", type=str, help="Data inicial ISO (ex: 2026-07-01)")
     parser.add_argument("--end-date", type=str, help="Data final ISO (ex: 2026-07-27)")
     parser.add_argument("--output-dir", type=str, default="output", help="Diretório de exportação dos relatórios")
-
+    parser.add_argument("--json-stdout", action="store_true", help="Imprime o relatório como JSON no stdout (para integração com API)")
+    parser.add_argument("--sales-file", type=str, help="Caminho de um CSV/XLSX com a base de vendas a auditar")
+    parser.add_argument("--attribution-window", type=int, default=DEFAULT_ATTRIBUTION_WINDOW_DAYS, help="Janela de atribuição em dias: quanto tempo antes da venda um lead ainda explica a origem")
+    parser.add_argument("--skip-sales-audit", action="store_true", help="Pula o cruzamento da base de vendas")
+    parser.add_argument("--empreendimento", type=str, help="Confere apenas as vendas deste empreendimento (os leads dos demais seguem disponíveis para match)")
+    parser.add_argument("--listar-empreendimentos", action="store_true", help="Lista os empreendimentos oficiais cadastrados no CV e encerra")
     args = parser.parse_args()
 
-    now = datetime.now(timezone.utc)
-    start_dt = datetime.fromisoformat(args.start_date) if args.start_date else now - timedelta(days=7)
-    end_dt = datetime.fromisoformat(args.end_date) if args.end_date else now
+    if args.listar_empreendimentos:
+        cv = CVCRMExtractor()
+        nomes = cv.fetch_empreendimentos()
+        status = cv.empreendimentos_status
+        print(f"{MODE_ICON.get(status.mode, '')} {status.label}: {status.message}")
+        for nome in nomes:
+            print(f"  • {nome}")
+        return
 
-    print("========================================================================")
+    start_dt, end_dt = resolve_period(args.start_date, args.end_date)
+
+    print(LINHA)
     print("🚀 INICIANDO ANÁLISE SOB DEMANDA DE RECONCILIAÇÃO DE LEADS")
-    print(f"📅 Período: {start_dt.strftime('%Y-%m-%d')} até {end_dt.strftime('%Y-%m-%d')}")
-    print("========================================================================")
+    print(f"📅 Período: {start_dt:%Y-%m-%d} até {end_dt:%Y-%m-%d}")
+    print(LINHA)
 
-    # 1. Extração das fontes de dados
-    print("\n[1/4] Extraindo leads de todas as origens...")
-    meta_leads = MetaAdsExtractor().fetch_leads(start_dt, end_dt)
-    gads_leads = GoogleAdsExtractor().fetch_leads(start_dt, end_dt)
-    rd_leads = RDStationExtractor().fetch_leads(start_dt, end_dt)
-    bee_leads = BeeViralExtractor().fetch_leads(start_dt, end_dt)
-    sheets_leads = SheetsBIExtractor().fetch_leads(start_dt, end_dt)
+    result = run_pipeline(
+        start_dt,
+        end_dt,
+        sales_file=args.sales_file,
+        attribution_window_days=args.attribution_window,
+        empreendimento=args.empreendimento,
+        skip_sales_audit=args.skip_sales_audit,
+        output_dir=args.output_dir,
+    )
+    report = result.report
 
-    all_source_leads = meta_leads + gads_leads + rd_leads + bee_leads + sheets_leads
-    print(f"  -> Total de leads capturados nas origens: {len(all_source_leads)}")
-    print(f"     - Meta Ads: {len(meta_leads)}")
-    print(f"     - Google Ads: {len(gads_leads)}")
-    print(f"     - RD Station: {len(rd_leads)}")
-    print(f"     - BeeViral: {len(bee_leads)}")
-    print(f"     - Planilhas BI: {len(sheets_leads)}")
+    # ------------------------------------------------------------------ integrações
+    print("\n" + LINHA)
+    print("🔌 INTEGRAÇÕES")
+    for fonte in report.sources:
+        print(f"  {MODE_ICON.get(fonte.mode, '?')} {fonte.label}: {fonte.message}")
+        if fonte.mode != "real":
+            if fonte.action:
+                print(f"       → {fonte.action}")
+            for link in fonte.help_links:
+                print(f"       🔗 {link.label}: {link.url}")
+    if report.simulated_data:
+        print("\n  🧪 ATENÇÃO: há DADOS SIMULADOS neste relatório (ALLOW_SIMULATED_DATA ligado).")
 
-    # 2. Extração do CRM Construtor de Vendas (CV)
-    print("\n[2/4] Extraindo leads do CRM Construtor de Vendas (CV)...")
-    cv_leads = CVCRMExtractor().fetch_cv_leads(start_dt, end_dt)
-    print(f"  -> Total de leads encontrados no CV: {len(cv_leads)}")
-
-    # 3. Processamento de Reconciliação
-    print("\n[3/4] Executando Algoritmo Híbrido de Matching e Detecção de Divergências...")
-    reconciler = LeadReconciler(all_source_leads, cv_leads)
-    report = reconciler.reconcile(start_dt.strftime("%Y-%m-%d"), end_dt.strftime("%Y-%m-%d"))
-
-    # 4. Exportação dos Relatórios
-    print("\n[4/4] Gerando relatórios e estatísticas...")
-    exporter = ReportExporter(output_dir=args.output_dir)
-    json_path = exporter.export_json(report)
-    csv_path = exporter.export_divergences_csv(report)
-
-    print("\n========================================================================")
+    # ------------------------------------------------------------------ reconciliação
+    print("\n" + LINHA)
     print(f"📊 RESUMO DA RECONCILIAÇÃO (Execução ID: {report.execution_id})")
-    print(f"  • Saúde Geral: {report.overall_health.value}")
-    print(f"  • Taxa de Aderência Global: {report.overall_adherence_rate}%")
-    print(f"  • Leads Reconciliados (MATCH_OK): {report.total_reconciled_ok}")
-    print(f"  • Leads Perdidos (MISSING_IN_CV): {report.total_missing_in_cv}")
-    print(f"  • Origem Incorreta (ORIGIN_MISMATCH): {report.total_origin_mismatch}")
-    print("========================================================================")
-    print(f"📁 Arquivo JSON: {json_path}")
-    print(f"📁 Arquivo CSV: {csv_path}")
-    print("========================================================================\n")
+    print(f"  • Leads das origens no período: {report.total_source_leads}")
+    if report.cv_available:
+        print(f"  • Saúde Geral: {report.overall_health.value}")
+        print(f"  • Taxa de Aderência Global: {report.overall_adherence_rate}%")
+        print(f"  • Leads Reconciliados (MATCH_OK): {report.total_reconciled_ok}")
+        print(f"  • Leads Perdidos (MISSING_IN_CV): {report.total_missing_in_cv}")
+        print(f"  • Origem Incorreta (ORIGIN_MISMATCH): {report.total_origin_mismatch}")
+    else:
+        print("  • Conferência com o CV INDISPONÍVEL: os leads do CV não puderam ser lidos,")
+        print("    então nenhum lead foi acusado de ausente no CRM. Veja a seção de integrações.")
+
+    # ------------------------------------------------------------------ vendas
+    if report.sales_audit:
+        sa = report.sales_audit
+        print("------------------------------------------------------------------------")
+        print("🧾 AUDITORIA DE VENDAS (Base de Vendas x Base de Leads)")
+        print(f"  • Vendas no período: {sa.total_sales}")
+        if sa.total_sales:
+            print(f"  • Online declarado: {sa.declared_online}  |  Online comprovado: {sa.verified_online}  ({sa.online_delta:+d})")
+            print(f"  • Acurácia da atribuição: {sa.attribution_accuracy}% [{sa.health_status.value}]")
+            print(f"  • Falso online: {sa.online_unproven} | Online não declarado: {sa.online_not_declared} | Canal errado: {sa.channel_mismatch}")
+        if sa.leads_sem_empreendimento:
+            print(f"  • {sa.leads_sem_empreendimento} lead(s) sem empreendimento identificável.")
+        if sa.empreendimentos:
+            print("------------------------------------------------------------------------")
+            print("🏗️  CONFERÊNCIA POR EMPREENDIMENTO")
+            for emp in sa.empreendimentos:
+                marca = "OK " if emp.is_consistent else "!! "
+                print(
+                    f"  {marca}{emp.empreendimento}: {emp.total_leads} leads | {emp.total_sales} vendas | "
+                    f"online {emp.declared_online} declarado x {emp.verified_online} comprovado | "
+                    f"conversão {emp.conversion_rate}%"
+                )
+                for problema in emp.inconsistencies:
+                    print(f"       - {problema}")
+
+    print(LINHA)
+    if result.json_path:
+        print(f"📁 Arquivo JSON: {result.json_path}")
+        print(f"📁 Arquivo CSV: {result.csv_path}")
+    if result.sales_csv_path:
+        print(f"📁 Auditoria de Vendas CSV: {result.sales_csv_path}")
+    print(LINHA + "\n")
+
+    if args.json_stdout:
+        print("\n__JSON_REPORT_START__")
+        print(json.dumps(report.model_dump(), indent=2, ensure_ascii=False, default=str))
+        print("__JSON_REPORT_END__")
 
 
 if __name__ == "__main__":

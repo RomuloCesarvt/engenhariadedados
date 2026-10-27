@@ -59,6 +59,58 @@ class ReportExporter:
 
         return filepath
 
+    def export_sales_audit_csv(self, report: GlobalReconciliationReport) -> Optional[str]:
+        """
+        Exporta a auditoria de vendas (declarado x comprovado, venda a venda).
+        Retorna None quando a execução não incluiu o cruzamento da base de vendas.
+        """
+        if not report.sales_audit:
+            return None
+
+        filepath = os.path.join(self.output_dir, f"sales_audit_{report.execution_id}.csv")
+        latest_path = os.path.join(self.output_dir, "latest_sales_audit.csv")
+
+        fields = [
+            "sale_id",
+            "client_name",
+            "document",
+            "email",
+            "phone",
+            "sale_date",
+            "value",
+            "empreendimento",
+            "declared_channel_raw",
+            "declared_is_online",
+            "verified_is_online",
+            "verdict",
+            "severity",
+            "matched_by",
+            "matched_lead_id",
+            "matched_channel",
+            "lead_created_at",
+            "days_lead_to_sale",
+            "lead_empreendimento",
+            "empreendimento_match",
+            "details",
+        ]
+
+        def write_rows(file_path):
+            with open(file_path, "w", newline="", encoding="utf-8-sig") as f:
+                writer = csv.DictWriter(f, fieldnames=fields)
+                writer.writeheader()
+                for sale in report.sales_audit.sales:
+                    row = sale.model_dump()
+                    # Enums viram string legível na planilha
+                    row["verdict"] = sale.verdict.value
+                    row["matched_by"] = sale.matched_by.value
+                    row["matched_channel"] = sale.matched_channel.value if sale.matched_channel else ""
+                    writer.writerow({k: row.get(k, "") for k in fields})
+
+        write_rows(filepath)
+        write_rows(latest_path)
+
+        return filepath
+
     def save_to_firebase(self, report: GlobalReconciliationReport) -> bool:
         """Salva os relatórios no Firebase Firestore se o SDK / credenciais estiverem disponíveis."""
         try:

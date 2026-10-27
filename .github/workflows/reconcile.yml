@@ -38,6 +38,22 @@ jobs:
 
       - name: Executar Engine de Reconciliação Sob Demanda
         env:
+          CV_CRM_URL: ${{ secrets.CV_CRM_URL }}
+          CV_CRM_EMAIL: ${{ secrets.CV_CRM_EMAIL }}
+          CV_CRM_TOKEN: ${{ secrets.CV_CRM_TOKEN }}
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
+          RD_STATION_API_TOKEN: ${{ secrets.RD_STATION_API_TOKEN }}
+          RD_STATION_CLIENT_ID: ${{ secrets.RD_STATION_CLIENT_ID }}
+          RD_STATION_CLIENT_SECRET: ${{ secrets.RD_STATION_CLIENT_SECRET }}
+          RD_STATION_REFRESH_TOKEN: ${{ secrets.RD_STATION_REFRESH_TOKEN }}
+          BEEVIRAL_API_KEY: ${{ secrets.BEEVIRAL_API_KEY }}
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
           FIREBASE_CREDENTIALS_PATH: ${{ secrets.FIREBASE_CREDENTIALS_PATH }}
         run: |
           python engine/main.py --start-date "${{ github.event.inputs.start_date }}" --end-date "${{ github.event.inputs.end_date }}"

@@ -6,6 +6,86 @@
 
 :root {
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --ml-verde: #1a7a10;
+  --ml-verde-escuro: #1b4f38;
+  --ml-verde-claro: #2f9a1d;
+  --ml-verde-bg: #edf7e9;
+  --ml-laranja: #ff7f00;
+  --ml-laranja-claro: #ff9a2b;
+  --ml-laranja-bg: #fff3e6;
+  --ml-green-900-rgb: 27 79 56;
+  --ml-green-800-rgb: 30 95 57;
+  --ml-green-700-rgb: 26 122 16;
+  --ml-green-600-rgb: 47 154 29;
+  --ml-orange-rgb: 255 127 0;
+  --ml-orange-soft-rgb: 255 243 230;
+  --ml-surface-rgb: 255 255 255;
+  --ml-background-rgb: 247 251 245;
+
+  /* Tailwind base values (Dark mode is default for this app) */
+  --color-white: 255 255 255;
+  --color-black: 0 0 0;
+
+  --color-slate-50: 248 250 252;
+  --color-slate-100: 241 245 249;
+  --color-slate-200: 226 232 240;
+  --color-slate-300: 203 213 225;
+  --color-slate-400: 148 163 184;
+  --color-slate-500: 100 116 139;
+  --color-slate-600: 71 85 105;
+  --color-slate-700: 51 65 85;
+  --color-slate-800: 30 41 59;
+  --color-slate-900: 15 23 42;
+  --color-slate-950: 2 6 23;
+
+  --color-sky-300: 125 211 252;
+  --color-sky-400: 56 189 248;
+  --color-sky-500: 14 165 233;
+
+  --color-amber-200: 253 230 138;
+  --color-amber-300: 252 211 77;
+  --color-amber-400: 251 191 36;
+  --color-amber-500: 245 158 11;
+
+  --color-emerald-400: 52 211 153;
+  --color-emerald-500: 16 185 129;
+
+  --color-rose-400: 251 113 133;
+  --color-rose-500: 244 63 94;
+}
+
+/* ━━━ MOURA LEITE LIGHT THEME ━━━ */
+.moura-leite-light {
+  /* Reinterpreta a escala slate no modo claro sem obrigar mudanças em cada tela. */
+  --color-slate-950: 247 251 245; /* fundo do app */
+  --color-slate-900: 255 255 255; /* cards e painéis */
+  --color-slate-800: 224 234 220; /* bordas */
+  --color-slate-700: 198 215 192;
+  --color-slate-600: 84 104 88;
+  --color-slate-500: 73 93 78;
+  --color-slate-400: 58 78 64;
+  --color-slate-300: 52 72 56;
+  --color-slate-200: 36 56 43;
+  --color-slate-100: 27 79 56;
+  --color-slate-50: 21 56 39;
+
+  --color-white: 27 79 56;        /* text-white vira verde escuro */
+  --color-black: 255 255 255;
+
+  --color-amber-200: 159 69 0;
+  --color-amber-300: 159 69 0;
+  --color-amber-400: 159 69 0;
+  --color-amber-500: 205 86 0;
+
+  --color-sky-300: 47 154 29;
+  --color-sky-400: 26 122 16;
+  --color-sky-500: 27 79 56;
+
+  --color-emerald-400: 26 122 16;
+  --color-emerald-500: 26 122 16;
+
+  --color-rose-400: 190 24 62;
+  --color-rose-500: 208 32 65;
 }
 
 * {
@@ -14,18 +94,24 @@
 
 body {
   font-family: var(--font-sans);
-  background-color: #0a0e1a;
-  color: #e2e8f0;
+  background-color: rgb(var(--color-slate-950));
+  color: rgb(var(--color-slate-200));
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+body.moura-leite-light {
+  background:
+    linear-gradient(180deg, rgb(var(--ml-background-rgb)) 0%, #eef7ea 100%);
+  color: rgb(var(--ml-green-900-rgb));
+}
+
 /* ━━━ Premium Card Styles ━━━ */
 .card {
-  background: linear-gradient(145deg, #111827 0%, #0f172a 100%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 20px;
+  background: linear-gradient(145deg, rgb(var(--color-slate-900)) 0%, rgb(var(--color-slate-950)) 100%);
+  border: 1px solid rgb(var(--color-white) / 0.06);
+  border-radius: 8px;
   transition: all 0.25s ease;
 }
 
@@ -35,23 +121,23 @@ body {
 }
 
 .card-highlight {
-  background: linear-gradient(145deg, #111827 0%, #0f172a 100%);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  border-radius: 20px;
+  background: linear-gradient(145deg, rgb(var(--color-slate-900)) 0%, rgb(var(--color-slate-950)) 100%);
+  border: 1px solid rgb(var(--color-emerald-500) / 0.2);
+  border-radius: 8px;
 }
 
 .card-danger {
-  background: linear-gradient(145deg, #1a0a0f 0%, #0f172a 100%);
-  border: 1px solid rgba(244, 63, 94, 0.2);
-  border-radius: 20px;
+  background: linear-gradient(145deg, rgb(var(--color-rose-500) / 0.1) 0%, rgb(var(--color-slate-950)) 100%);
+  border: 1px solid rgb(var(--color-rose-500) / 0.2);
+  border-radius: 8px;
 }
 
 /* ━━━ Action Button ━━━ */
 .btn-primary {
-  background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
-  color: white;
+  background: linear-gradient(135deg, rgb(var(--color-sky-400)) 0%, rgb(var(--color-sky-500)) 100%);
+  color: #ffffff;
   font-weight: 600;
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 12px 24px;
   transition: all 0.2s ease;
   box-shadow: 0 4px 14px -3px rgba(14, 165, 233, 0.4);
@@ -68,9 +154,9 @@ body {
 
 /* ━━━ Menu Card (Home) ━━━ */
 .menu-card {
-  background: linear-gradient(145deg, #111827 0%, #0f172a 100%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 24px;
+  background: linear-gradient(145deg, rgb(var(--color-slate-900)) 0%, rgb(var(--color-slate-950)) 100%);
+  border: 1px solid rgb(var(--color-white) / 0.06);
+  border-radius: 8px;
   padding: 32px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -92,12 +178,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: rgb(var(--color-slate-700));
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: rgb(var(--color-slate-600));
 }
 
 /* ━━━ Progress bar animation ━━━ */
@@ -193,3 +279,493 @@ body {
   animation: connectionPulse 1.5s ease-in-out infinite;
 }
 
+
+/* ━━━ BI: superfícies, tabelas e controles ━━━ */
+.painel {
+  background: rgb(var(--color-slate-900));
+  border: 1px solid rgb(var(--color-slate-400) / 0.12);
+  border-radius: 8px;
+}
+
+.stat-tile {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  color: rgb(var(--color-slate-300));
+}
+.tabela th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 11px;
+  color: rgb(var(--color-slate-400));
+  padding: 8px 10px;
+  border-bottom: 1px solid rgb(var(--color-slate-800));
+  white-space: nowrap;
+}
+.tabela td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgb(var(--color-slate-800));
+  vertical-align: top;
+}
+.tabela tbody tr:last-child td {
+  border-bottom: none;
+}
+.tabela .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.controle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgb(var(--color-slate-800));
+  background: rgb(var(--color-slate-900));
+  font-size: 12px;
+  color: rgb(var(--color-slate-200));
+}
+.controle:hover {
+  border-color: rgb(var(--color-slate-700));
+}
+
+.botao-primario,
+.botao-secundario {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  transition: background-color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.botao-primario {
+  background: rgb(var(--color-sky-500));
+  color: #ffffff;
+}
+.botao-primario:hover {
+  background: rgb(var(--color-sky-400));
+}
+.botao-secundario {
+  border: 1px solid rgb(var(--color-slate-700));
+  color: rgb(var(--color-slate-300));
+}
+.botao-secundario:hover {
+  background: rgb(var(--color-slate-700) / 0.4);
+  color: rgb(var(--color-white));
+}
+.botao-primario:disabled,
+.botao-secundario:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--ml-orange-rgb));
+  outline-offset: 2px;
+}
+
+/* Visualização 3D dos gráficos: profundidade discreta sem alterar a escala dos dados. */
+.chart-3d-stage {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 8px;
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.035) 1px, transparent 1px);
+  background-size: 28px 28px;
+  box-shadow: inset 0 -32px 48px -48px rgba(56, 189, 248, 0.7);
+}
+
+.chart-3d-stage .recharts-responsive-container,
+.chart-pie-3d .recharts-responsive-container {
+  position: relative;
+  z-index: 1;
+}
+
+.chart-3d-stage svg {
+  overflow: visible;
+}
+
+.barra-3d {
+  filter: drop-shadow(4px 6px 4px rgba(2, 6, 23, 0.26));
+}
+
+.barra-3d-topo {
+  filter: brightness(1.18) saturate(1.05);
+}
+
+.barra-3d-lateral {
+  filter: brightness(0.62) saturate(0.95);
+}
+
+.barra-3d-brilho {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.38);
+  stroke-linecap: round;
+  stroke-width: 1;
+}
+
+.linha-3d-depth {
+  opacity: 0.52;
+  filter: brightness(0.48) saturate(0.82);
+  transform: translate(3px, 4px);
+  transform-box: fill-box;
+  transform-origin: center;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.linha-3d-face {
+  filter: drop-shadow(0 3px 3px rgba(2, 6, 23, 0.28));
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.linha-3d-brilho {
+  opacity: 0.38;
+  transform: translate(-0.5px, -0.5px);
+  transform-box: fill-box;
+  transform-origin: center;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.chart-funnel-3d {
+  perspective: 900px;
+  transform-style: preserve-3d;
+}
+
+.funil-3d-sombra {
+  opacity: 0.58;
+  transform: translate(7px, 6px);
+  filter: brightness(0.38) saturate(0.8);
+}
+
+.funil-3d-face {
+  transform: translateZ(8px) rotateX(-2deg);
+  transform-origin: center;
+  filter: drop-shadow(0 8px 8px rgba(2, 6, 23, 0.22));
+}
+
+.funil-barra-3d {
+  transform: perspective(600px) rotateX(-10deg);
+  transform-origin: left center;
+  box-shadow: 0 6px 0 rgba(2, 6, 23, 0.2), 0 10px 18px -12px rgba(56, 189, 248, 0.7);
+}
+
+.chart-pie-3d .recharts-wrapper {
+  filter: drop-shadow(0 12px 9px rgba(2, 6, 23, 0.24));
+}
+
+
+/* =====================================================================
+   MODO CLARO — MOURA LEITE LOTEAMENTOS
+   Branco · Verde · Laranja
+   Ativado com a classe .moura-leite-light no <body>
+   ===================================================================== */
+
+body.moura-leite-light .ml-brand-lockup {
+  background: linear-gradient(180deg, #ffffff 0%, #f3faef 100%);
+}
+
+body.moura-leite-light .chart-3d-stage {
+  background-image:
+    linear-gradient(rgb(var(--ml-green-900-rgb) / 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--ml-green-900-rgb) / 0.025) 1px, transparent 1px);
+  box-shadow: none;
+}
+
+body.moura-leite-light .barra-3d {
+  filter: none;
+}
+
+body.moura-leite-light .barra-3d-topo {
+  filter: brightness(1.07) saturate(0.98);
+}
+
+body.moura-leite-light .barra-3d-lateral {
+  filter: brightness(0.76) saturate(0.92);
+}
+
+body.moura-leite-light .linha-3d-depth {
+  opacity: 0.24;
+  filter: brightness(0.76) saturate(0.88);
+  transform: translate(2px, 3px);
+}
+
+body.moura-leite-light .linha-3d-face {
+  filter: none;
+}
+
+body.moura-leite-light .linha-3d-brilho {
+  opacity: 0.58;
+}
+
+body.moura-leite-light .funil-3d-sombra {
+  opacity: 0.24;
+  transform: translate(3px, 3px);
+  filter: brightness(0.68) saturate(0.82);
+}
+
+body.moura-leite-light .funil-3d-face,
+body.moura-leite-light .chart-pie-3d .recharts-wrapper {
+  filter: none;
+}
+
+body.moura-leite-light .pie-3d-depth {
+  opacity: 0.24 !important;
+  filter: brightness(0.8) saturate(0.9) !important;
+}
+
+body.moura-leite-light .pie-3d-face {
+  stroke: rgb(var(--ml-surface-rgb)) !important;
+  stroke-width: 1px !important;
+}
+
+body.moura-leite-light .funil-barra-3d {
+  box-shadow: 0 2px 0 rgb(var(--ml-green-900-rgb) / 0.1);
+}
+
+body.moura-leite-light .recharts-cartesian-grid line {
+  stroke: rgb(var(--ml-green-900-rgb) / 0.12) !important;
+}
+
+body.moura-leite-light .recharts-cartesian-axis-line,
+body.moura-leite-light .recharts-cartesian-axis-tick-line {
+  stroke: rgb(var(--ml-green-900-rgb) / 0.16) !important;
+}
+
+body.moura-leite-light .recharts-cartesian-axis-tick text,
+body.moura-leite-light .recharts-label-list text {
+  fill: rgb(var(--ml-green-900-rgb) / 0.68) !important;
+}
+
+body.moura-leite-light header.sticky.backdrop-blur {
+  background-color: rgb(var(--ml-surface-rgb)) !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+body.moura-leite-light .ml-brand-logo {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+body.moura-leite-light .card,
+body.moura-leite-light .menu-card,
+body.moura-leite-light .painel {
+  background: rgb(var(--ml-surface-rgb));
+  border-color: rgb(var(--ml-green-900-rgb) / 0.12);
+  box-shadow:
+    0 1px 2px rgb(var(--ml-green-900-rgb) / 0.07),
+    0 10px 24px -14px rgb(var(--ml-green-900-rgb) / 0.24);
+}
+
+body.moura-leite-light .stat-tile {
+  border-color: rgb(var(--ml-green-900-rgb) / 0.16);
+  box-shadow:
+    0 2px 4px rgb(var(--ml-green-900-rgb) / 0.1),
+    0 14px 28px -16px rgb(var(--ml-green-900-rgb) / 0.38);
+}
+
+body.moura-leite-light button.stat-tile:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 3px 7px rgb(var(--ml-green-900-rgb) / 0.12),
+    0 18px 34px -16px rgb(var(--ml-green-900-rgb) / 0.44);
+}
+
+body.moura-leite-light .card:hover,
+body.moura-leite-light .menu-card:hover {
+  border-color: rgb(var(--ml-green-700-rgb) / 0.34);
+  box-shadow: 0 18px 44px -30px rgb(var(--ml-green-900-rgb) / 0.5);
+}
+
+body.moura-leite-light .card-highlight {
+  background: linear-gradient(145deg, #ffffff 0%, #f3faef 100%);
+  border-color: rgb(var(--ml-green-700-rgb) / 0.28);
+}
+
+body.moura-leite-light .card-danger {
+  background: linear-gradient(145deg, #ffffff 0%, #fff5f0 100%);
+  border-color: rgb(var(--color-rose-500) / 0.24);
+}
+
+body.moura-leite-light .btn-primary,
+body.moura-leite-light .botao-primario {
+  background: linear-gradient(135deg, rgb(var(--ml-green-700-rgb)) 0%, rgb(var(--ml-green-900-rgb)) 100%);
+  color: #ffffff;
+  box-shadow: 0 12px 24px -18px rgb(var(--ml-green-900-rgb) / 0.85);
+}
+
+body.moura-leite-light .btn-primary:hover,
+body.moura-leite-light .botao-primario:hover {
+  background: linear-gradient(135deg, rgb(var(--ml-green-600-rgb)) 0%, rgb(var(--ml-green-800-rgb)) 100%);
+}
+
+body.moura-leite-light .botao-secundario {
+  background: #ffffff;
+  border-color: rgb(var(--ml-green-900-rgb) / 0.2);
+  color: rgb(var(--ml-green-900-rgb));
+}
+
+body.moura-leite-light .botao-secundario:hover {
+  background: rgb(var(--ml-green-600-rgb) / 0.08);
+  border-color: rgb(var(--ml-green-700-rgb) / 0.35);
+  color: rgb(var(--ml-green-900-rgb));
+}
+
+body.moura-leite-light .controle {
+  background: #ffffff;
+  border-color: rgb(var(--ml-green-900-rgb) / 0.16);
+}
+
+body.moura-leite-light .tabela th {
+  background: #f7fbf5;
+  color: rgb(var(--ml-green-900-rgb) / 0.78);
+}
+
+body.moura-leite-light .tabela tbody tr:hover,
+body.moura-leite-light .hover\:bg-slate-800\/40:hover,
+body.moura-leite-light .hover\:bg-slate-800\/30:hover {
+  background-color: rgb(var(--ml-green-600-rgb) / 0.07);
+}
+
+body.moura-leite-light .bg-slate-950,
+body.moura-leite-light .bg-slate-950\/40 {
+  background-color: rgb(var(--color-slate-950));
+}
+
+body.moura-leite-light .bg-slate-900\/95,
+body.moura-leite-light .bg-slate-900\/90,
+body.moura-leite-light .bg-slate-900\/80,
+body.moura-leite-light .bg-slate-900\/60,
+body.moura-leite-light .bg-slate-900\/40 {
+  background-color: rgb(var(--ml-surface-rgb) / 0.94);
+}
+
+body.moura-leite-light .bg-slate-800\/60,
+body.moura-leite-light .bg-slate-800\/50,
+body.moura-leite-light .bg-slate-800\/40,
+body.moura-leite-light .bg-slate-800\/30 {
+  background-color: rgb(var(--ml-green-600-rgb) / 0.08);
+}
+
+body.moura-leite-light .bg-slate-700.text-white,
+body.moura-leite-light .bg-slate-700 .text-white {
+  color: rgb(var(--ml-green-900-rgb));
+}
+
+body.moura-leite-light .bg-sky-500.text-white,
+body.moura-leite-light .bg-sky-600.text-white,
+body.moura-leite-light .bg-emerald-500.text-white,
+body.moura-leite-light .bg-gradient-to-r.text-white,
+body.moura-leite-light .bg-gradient-to-br.text-white {
+  color: #ffffff;
+}
+
+body.moura-leite-light .from-sky-500 {
+  --tw-gradient-from: rgb(var(--ml-green-700-rgb)) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(var(--ml-green-700-rgb) / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
+body.moura-leite-light .to-blue-600,
+body.moura-leite-light .to-indigo-600 {
+  --tw-gradient-to: rgb(var(--ml-green-900-rgb)) var(--tw-gradient-to-position);
+}
+
+body.moura-leite-light .from-sky-950\/40,
+body.moura-leite-light .via-slate-900,
+body.moura-leite-light .to-indigo-950\/40 {
+  --tw-gradient-from: rgb(var(--ml-green-700-rgb) / 0.12) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(var(--ml-green-900-rgb) / 0.08) var(--tw-gradient-to-position);
+  --tw-gradient-stops: rgb(var(--ml-green-700-rgb) / 0.12), #ffffff, rgb(var(--ml-green-900-rgb) / 0.08);
+}
+
+body.moura-leite-light .border-sky-500\/20,
+body.moura-leite-light .border-sky-500\/30,
+body.moura-leite-light .border-sky-500\/40,
+body.moura-leite-light .border-sky-500\/60 {
+  border-color: rgb(var(--ml-green-700-rgb) / 0.34);
+}
+
+body.moura-leite-light .bg-sky-500\/5,
+body.moura-leite-light .bg-sky-500\/10,
+body.moura-leite-light .bg-sky-500\/20 {
+  background-color: rgb(var(--ml-green-600-rgb) / 0.1);
+}
+
+body.moura-leite-light .bg-amber-500\/5,
+body.moura-leite-light .bg-amber-500\/10 {
+  background-color: rgb(var(--ml-orange-rgb) / 0.1);
+}
+
+body.moura-leite-light .border-amber-500\/20,
+body.moura-leite-light .border-amber-500\/30,
+body.moura-leite-light .border-amber-500\/40 {
+  border-color: rgb(var(--ml-orange-rgb) / 0.3);
+}
+
+body.moura-leite-light .text-amber-100,
+body.moura-leite-light .text-amber-200,
+body.moura-leite-light .text-amber-300,
+body.moura-leite-light .text-amber-400 {
+  color: rgb(var(--color-amber-400));
+}
+
+/* Painéis sobrepostos mantêm a mesma hierarquia visual do dashboard claro. */
+body.moura-leite-light .theme-modal-backdrop {
+  background: rgb(var(--ml-green-900-rgb) / 0.18);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+body.moura-leite-light .theme-modal-panel {
+  background: rgb(var(--ml-surface-rgb));
+  border-color: rgb(var(--ml-green-900-rgb) / 0.18);
+  color: rgb(var(--ml-green-900-rgb));
+  box-shadow: -24px 0 60px -36px rgb(var(--ml-green-900-rgb) / 0.55);
+}
+
+body.moura-leite-light .theme-modal-header {
+  background: #f7fbf5;
+  border-color: rgb(var(--ml-green-900-rgb) / 0.14);
+}
+
+body.moura-leite-light .theme-modal-table-head,
+body.moura-leite-light .theme-modal-panel .tabela th {
+  background: #edf5ea;
+  color: rgb(var(--ml-green-900-rgb));
+  border-bottom-color: rgb(var(--ml-green-900-rgb) / 0.18);
+}
+
+body.moura-leite-light .theme-modal-panel .tabela td {
+  border-bottom-color: rgb(var(--ml-green-900-rgb) / 0.12);
+}
+
+body.moura-leite-light .theme-modal-panel .tabela tbody tr:nth-child(even) {
+  background: #f8fbf7;
+}
+
+body.moura-leite-light .theme-modal-panel .tabela tbody tr:hover {
+  background: #edf7e9;
+}
+
+body.moura-leite-light ::selection {
+  background: rgb(var(--ml-green-900-rgb));
+  color: #ffffff;
+}

@@ -1,9 +1,15 @@
-polars>=0.20.0
 pandas>=2.0.0
+openpyxl>=3.1.0
 pydantic>=2.5.0
 httpx>=0.25.0
 python-dotenv>=1.0.0
 pytest>=7.4.0
 fastapi>=0.110.0
 uvicorn[standard]>=0.27.0
+python-multipart>=0.0.9
 sse-starlette>=2.0.0
+# Google Analytics 4 (conta de serviço):
+google-auth>=2.28.0
+# Opcional — histórico no Firestore:
+# firebase-admin>=6.5.0
+Pillow

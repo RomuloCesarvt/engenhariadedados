@@ -26,9 +26,20 @@ def ensure_utc(dt: datetime) -> datetime:
 
 
 class LeadReconciler:
-    def __init__(self, source_leads: List[LeadRecord], cv_leads: List[CVLeadRecord]):
+    def __init__(
+        self,
+        source_leads: List[LeadRecord],
+        cv_leads: List[CVLeadRecord],
+        cv_period_leads: Optional[List[CVLeadRecord]] = None,
+    ):
+        """
+        `cv_leads` é a base usada para achar cada lead no CRM e deve incluir histórico:
+        quem é indicado hoje pode ser lead do CV há meses. `cv_period_leads` são os
+        leads do CV no período analisado, usados só nas contagens.
+        """
         self.source_leads = source_leads
         self.cv_leads = cv_leads
+        self.cv_period_leads = cv_period_leads if cv_period_leads is not None else cv_leads
 
         # Índices para rápida busca O(1)
         self.cv_by_ext_id: Dict[str, CVLeadRecord] = {}
@@ -61,7 +72,14 @@ class LeadReconciler:
 
         return None
 
-    def reconcile(self, start_date: str, end_date: str) -> GlobalReconciliationReport:
+    def reconcile(
+        self, start_date: str, end_date: str, cv_available: bool = True
+    ) -> GlobalReconciliationReport:
+        """
+        `cv_available=False` indica que os leads do CV não puderam ser lidos. Nesse
+        caso nenhum lead é acusado de ausente no CRM: a ausência seria da leitura,
+        não do lead.
+        """
         now = datetime.now(timezone.utc)
         divergences: List[DivergenceRecord] = []
 
@@ -81,13 +99,13 @@ class LeadReconciler:
         }
 
         # Contagem de leads no CV por origem
-        for cv in self.cv_leads:
+        for cv in self.cv_period_leads:
             ch_alias = normalize_channel_alias(cv.origem_cv)
             if ch_alias in channel_stats:
                 channel_stats[ch_alias]["cv"] += 1
 
         total_source = len(self.source_leads)
-        total_cv = len(self.cv_leads)
+        total_cv = len(self.cv_period_leads)
         total_match_ok = 0
         total_missing = 0
         total_mismatch = 0
@@ -98,6 +116,9 @@ class LeadReconciler:
                 continue
 
             channel_stats[ch]["source"] += 1
+            if not cv_available:
+                channel_stats[ch]["pending"] += 1
+                continue
             matched_cv = self._find_matching_cv_lead(lead)
 
             if matched_cv:
@@ -108,6 +129,14 @@ class LeadReconciler:
                 is_origin_correct = (cv_ch_alias == ch) or (
                     ch == OriginChannel.BEEVIRAL and "beeviral" in matched_cv.origem_cv.lower()
                 )
+
+                # Lead que já estava no CV antes de chegar por esta origem: a origem do CRM é
+                # a do primeiro contato, então não é erro de cadastro.
+                ja_existia_no_cv = (
+                    ensure_utc(lead.created_at) - ensure_utc(matched_cv.created_at)
+                ).total_seconds() > 86400
+                if ja_existia_no_cv:
+                    is_origin_correct = True
 
                 # Validação de Latência (ex: > 2 horas entre conversão e entrada no CV)
                 time_diff_seconds = (ensure_utc(matched_cv.created_at) - ensure_utc(lead.created_at)).total_seconds()
@@ -232,4 +261,5 @@ class LeadReconciler:
             overall_health=overall_health,
             channels=channel_summaries,
             divergences=divergences,
+            cv_available=cv_available,
         )
