@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { engineFetch } from '../lib/engine';
+import { SourceStatus } from '../types';
 import {
   Radio,
   Wifi,
@@ -51,9 +53,16 @@ interface MonitorStats {
   mismatch: number;
 }
 
-interface LiveMonitorProps {
-  backendUrl?: string;
+interface MonitorPayload {
+  mode: 'demo' | 'production';
+  stats: MonitorStats;
+  leads: TrackedLead[];
+  sources?: SourceStatus[];
+  persistence?: { kind: string; persistent: boolean };
 }
+
+// O dashboard consulta o motor a cada 15s; o motor só executa um ciclo por minuto.
+const POLL_MS = 15000;
 
 // ━━━ Helpers ━━━
 const channelNames: Record<string, string> = {
@@ -62,6 +71,7 @@ const channelNames: Record<string, string> = {
   rd_station: 'RD Station',
   beeviral: 'BeeViral',
   sheets_bi: 'Planilhas',
+  cv_crm: 'CRM CV',
 };
 
 const channelColors: Record<string, string> = {
@@ -101,14 +111,16 @@ function getProgressPercent(isoDate: string, maxSeconds: number = 600): number {
 }
 
 // ━━━ Component ━━━
-export const LiveMonitor: React.FC<LiveMonitorProps> = ({ backendUrl = 'http://localhost:8765' }) => {
+export const LiveMonitor: React.FC = () => {
   const [leads, setLeads] = useState<TrackedLead[]>([]);
   const [stats, setStats] = useState<MonitorStats>({ total: 0, waiting: 0, found: 0, lost: 0, mismatch: 0 });
   const [connected, setConnected] = useState(false);
   const [mode, setMode] = useState<'demo' | 'production'>('demo');
+  const [sources, setSources] = useState<SourceStatus[]>([]);
+  const [persistent, setPersistent] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [, setTick] = useState(0); // Force re-render for timers
-  const eventSourceRef = useRef<EventSource | null>(null);
   const pausedRef = useRef(false);
 
   // Keep ref in sync for use inside callbacks
@@ -122,79 +134,34 @@ export const LiveMonitor: React.FC<LiveMonitorProps> = ({ backendUrl = 'http://l
     return () => clearInterval(timer);
   }, []);
 
-  // SSE Connection
-  const connectSSE = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-
-    const es = new EventSource(`${backendUrl}/api/monitor/stream`);
-    eventSourceRef.current = es;
-
-    es.addEventListener('initial', (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        setLeads(data.leads || []);
-        setStats(data.stats || { total: 0, waiting: 0, found: 0, lost: 0, mismatch: 0 });
-        setMode(data.mode || 'demo');
-        setConnected(true);
-      } catch {}
-    });
-
-    es.addEventListener('lead_new', (e) => {
-      if (pausedRef.current) return;
-      try {
-        const lead: TrackedLead = JSON.parse(e.data);
-        setLeads((prev) => [lead, ...prev.filter((l) => l.lead_id !== lead.lead_id)]);
-      } catch {}
-    });
-
-    es.addEventListener('lead_update', (e) => {
-      if (pausedRef.current) return;
-      try {
-        const lead: TrackedLead = JSON.parse(e.data);
-        setLeads((prev) =>
-          prev.map((l) => (l.lead_id === lead.lead_id ? lead : l))
-        );
-      } catch {}
-    });
-
-    es.addEventListener('stats', (e) => {
-      try {
-        setStats(JSON.parse(e.data));
-      } catch {}
-    });
-
-    es.addEventListener('reset', () => {
-      setLeads([]);
-      setStats({ total: 0, waiting: 0, found: 0, lost: 0, mismatch: 0 });
-    });
-
-    es.addEventListener('heartbeat', () => {
-      // Keep-alive
-    });
-
-    es.onerror = () => {
-      setConnected(false);
-    };
-
-    es.onopen = () => {
+  const refresh = useCallback(async () => {
+    try {
+      const data = await engineFetch<MonitorPayload>('monitor/status?tick=true');
+      setLeads(data.leads || []);
+      setStats(data.stats);
+      setMode(data.mode);
+      setSources(data.sources ?? []);
+      setPersistent(data.persistence?.persistent ?? true);
       setConnected(true);
-    };
-  }, [backendUrl]);
+      setError(null);
+    } catch (e) {
+      setConnected(false);
+      setError(e instanceof Error ? e.message : 'Falha ao consultar o monitor.');
+    }
+  }, []);
 
   useEffect(() => {
-    connectSSE();
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-    };
-  }, [connectSSE]);
+    refresh();
+    const id = setInterval(() => {
+      if (!pausedRef.current && document.visibilityState === 'visible') refresh();
+    }, POLL_MS);
+    return () => clearInterval(id);
+  }, [refresh]);
 
   const handleReset = async () => {
     try {
-      await fetch(`${backendUrl}/api/monitor/reset`);
+      await engineFetch('monitor/reset', { method: 'POST' });
+      await refresh();
     } catch {}
   };
 
@@ -219,8 +186,8 @@ export const LiveMonitor: React.FC<LiveMonitorProps> = ({ backendUrl = 'http://l
             </span>
             <p className="text-[10px] text-slate-500">
               {connected
-                ? `Modo ${mode === 'demo' ? 'DEMO (dados simulados)' : 'PRODUÇÃO (APIs reais)'} · Polling a cada 60s`
-                : 'Inicie o backend: uvicorn engine.lead_monitor:app --port 8765'}
+                ? `Modo ${mode === 'demo' ? 'DEMO (dados simulados)' : 'PRODUÇÃO (APIs reais)'} · Verificação no CV a cada 60s`
+                : error ?? 'Não foi possível conectar ao motor de leads.'}
             </p>
           </div>
         </div>
@@ -246,6 +213,27 @@ export const LiveMonitor: React.FC<LiveMonitorProps> = ({ backendUrl = 'http://l
           </button>
         </div>
       </div>
+
+      {connected && !persistent && (
+        <div className="p-3 rounded-2xl border border-amber-500/30 bg-amber-500/5 text-[11px] text-amber-300">
+          O motor está sem armazenamento persistente (Upstash Redis). Na Vercel o monitor perde o histórico a cada
+          atualização até que o banco seja conectado ao projeto do motor.
+        </div>
+      )}
+
+      {sources.some((src) => src.status !== 'live') && (
+        <div className="p-3 rounded-2xl border border-slate-800 bg-slate-900/60 space-y-1">
+          {sources
+            .filter((src) => src.status !== 'live')
+            .map((src) => (
+              <p key={src.source} className="text-[11px] text-slate-400">
+                <strong className="text-slate-300">{channelNames[src.source] ?? src.source}</strong>:{' '}
+                {src.status === 'not_configured' ? 'não configurada' : src.status === 'simulated' ? 'dados simulados' : 'erro'}
+                {src.detail ? ` — ${src.detail}` : ''}
+              </p>
+            ))}
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">

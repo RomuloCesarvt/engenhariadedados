@@ -6,7 +6,14 @@ import os
 from typing import List, Optional
 from datetime import datetime
 from engine.config import OriginChannel, LeadRecord
-from engine.extractors.base import BaseExtractor
+from engine.extractors.base import (
+    BaseExtractor,
+    STATUS_ERROR,
+    STATUS_LIVE,
+    STATUS_NOT_CONFIGURED,
+    STATUS_SIMULATED,
+    simulation_allowed,
+)
 from engine.normalizer import normalize_lead
 
 
@@ -26,6 +33,8 @@ class MetaAdsExtractor(BaseExtractor):
                     "filtering": f"[{{'field':'time_created','operator':'GREATER_THAN','value':{int(start_date.timestamp())}}}]"
                 }
                 res = httpx.get(url, params=params, timeout=10)
+                if res.status_code != 200:
+                    self._mark(STATUS_ERROR, f"HTTP {res.status_code} da Graph API")
                 if res.status_code == 200:
                     data = res.json().get("data", [])
                     leads = []
@@ -44,11 +53,17 @@ class MetaAdsExtractor(BaseExtractor):
                             elif "phone" in fname or "telef" in fname or "celular" in fname:
                                 raw["phone"] = fval
                         leads.append(normalize_lead(raw, self.channel))
-                    if leads:
-                        print(f"  [Meta Ads API] Successfully fetched {len(leads)} real leads.")
-                        return leads
+                    print(f"  [Meta Ads API] Successfully fetched {len(leads)} real leads.")
+                    self._mark(STATUS_LIVE, count=len(leads))
+                    return leads
             except Exception as e:
                 print(f"  [Meta Ads API Warning] {e}. Falling back to simulation.")
+                self._mark(STATUS_ERROR, str(e))
+        else:
+            self._mark(STATUS_NOT_CONFIGURED, "META_ACCESS_TOKEN / META_PAGE_ID ausentes")
+
+        if not simulation_allowed():
+            return []
 
         # Fallback para dados de simulação
         leads = []
@@ -64,4 +79,5 @@ class MetaAdsExtractor(BaseExtractor):
             item["utm_source"] = "facebook"
             item["utm_medium"] = "cpc"
             leads.append(normalize_lead(item, self.channel))
+        self._mark(STATUS_SIMULATED, self.detail, len(leads))
         return leads

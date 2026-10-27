@@ -1,9 +1,6 @@
-polars>=0.20.0
-pandas>=2.0.0
-pydantic>=2.5.0
-httpx>=0.25.0
-python-dotenv>=1.0.0
+-r ../requirements.txt
 pytest>=7.4.0
-fastapi>=0.110.0
 uvicorn[standard]>=0.27.0
-sse-starlette>=2.0.0
+# Somente para ler planilhas .xlsx locais (SHEETS_BI_FILE); não é usado na Vercel
+pandas>=2.0.0
+openpyxl>=3.1.0

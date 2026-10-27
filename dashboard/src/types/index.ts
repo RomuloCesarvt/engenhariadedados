@@ -54,3 +54,26 @@ export interface GlobalReconciliationReport {
   channels: ChannelSummary[];
   divergences: DivergenceRecord[];
 }
+
+export type SourceState = 'live' | 'simulated' | 'not_configured' | 'error';
+
+export interface SourceStatus {
+  source: string;
+  status: SourceState;
+  detail?: string | null;
+  count: number;
+}
+
+export interface EngineReport {
+  saved_at: string | null;
+  report: GlobalReconciliationReport | null;
+  sources: SourceStatus[];
+}
+
+export interface EngineHealth {
+  ok: boolean;
+  persistence: { kind: string; persistent: boolean };
+  simulation_allowed: boolean;
+  monitor_mode: 'demo' | 'production';
+  sources_configured: Record<string, boolean>;
+}

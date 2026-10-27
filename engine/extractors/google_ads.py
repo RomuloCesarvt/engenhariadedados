@@ -6,7 +6,13 @@ import os
 from typing import List, Optional
 from datetime import datetime
 from engine.config import OriginChannel, LeadRecord
-from engine.extractors.base import BaseExtractor
+from engine.extractors.base import (
+    BaseExtractor,
+    STATUS_ERROR,
+    STATUS_NOT_CONFIGURED,
+    STATUS_SIMULATED,
+    simulation_allowed,
+)
 from engine.normalizer import normalize_lead
 
 
@@ -25,6 +31,13 @@ class GoogleAdsExtractor(BaseExtractor):
                 print(f"  [Google Ads API] Querying customer_id {self.customer_id}...")
             except Exception as e:
                 print(f"  [Google Ads API Warning] {e}. Falling back to simulation.")
+            # A consulta real ao Google Ads ainda não foi implementada neste extrator.
+            self._mark(STATUS_ERROR, "Integração real com Google Ads ainda não implementada")
+        else:
+            self._mark(STATUS_NOT_CONFIGURED, "GOOGLE_ADS_DEVELOPER_TOKEN / GOOGLE_ADS_CUSTOMER_ID ausentes")
+
+        if not simulation_allowed():
+            return []
 
         # Fallback para dados de simulação
         leads = []
@@ -38,4 +51,5 @@ class GoogleAdsExtractor(BaseExtractor):
             item["utm_source"] = "google"
             item["utm_medium"] = "cpc"
             leads.append(normalize_lead(item, self.channel))
+        self._mark(STATUS_SIMULATED, self.detail, len(leads))
         return leads

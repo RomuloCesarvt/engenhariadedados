@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
-import { INITIAL_REPORT } from '../lib/mockData';
-import { GlobalReconciliationReport } from '../types';
+import React, { useCallback, useEffect, useState } from 'react';
+import { EMPTY_REPORT, fetchHealth, fetchLatestReport } from '../lib/engine';
+import { EngineHealth, GlobalReconciliationReport, SourceStatus } from '../types';
 import {
   Activity,
   Search,
@@ -44,10 +44,55 @@ const channelColors: Record<string, string> = {
 };
 
 export default function Home() {
-  const [report, setReport] = useState<GlobalReconciliationReport>(INITIAL_REPORT);
+  const [report, setReport] = useState<GlobalReconciliationReport>(EMPTY_REPORT);
+  const [sources, setSources] = useState<SourceStatus[]>([]);
+  const [health, setHealth] = useState<EngineHealth | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [screen, setScreen] = useState<Screen>('home');
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const hasReport = report.execution_id !== '';
+
+  // Carrega o último relatório salvo e o estado das integrações
+  useEffect(() => {
+    fetchLatestReport()
+      .then((latest) => {
+        if (latest.report) setReport(latest.report);
+        setSources(latest.sources ?? []);
+      })
+      .catch((e) => setLoadError(e instanceof Error ? e.message : 'Falha ao carregar o último relatório.'));
+    fetchHealth().then(setHealth).catch(() => {});
+  }, []);
+
+  const handleRunSuccess = useCallback((newReport: GlobalReconciliationReport, newSources: SourceStatus[]) => {
+    setReport(newReport);
+    setSources(newSources);
+    setLoadError(null);
+  }, []);
+
+  // As telas de análise só fazem sentido depois da primeira execução
+  if ((screen === 'diagnostico' || screen === 'canais' || screen === 'investigar') && !hasReport) {
+    return (
+      <div className="min-h-screen">
+        <PageHeader
+          title="Nenhuma análise ainda"
+          subtitle="Execute a primeira análise para ver os resultados"
+          onBack={() => setScreen('home')}
+          onRun={() => setIsModalOpen(true)}
+        />
+        <main className="max-w-5xl mx-auto px-6 py-16 text-center">
+          <p className="text-sm text-slate-300">Ainda não há nenhum relatório salvo.</p>
+          <p className="text-xs text-slate-500 mt-1">Clique em &quot;Executar Análise&quot; para buscar os leads e cruzar com o CV.</p>
+        </main>
+        <TriggerAnalysisModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onRunSuccess={handleRunSuccess}
+        />
+      </div>
+    );
+  }
 
   // ━━━ TELA HOME ━━━
   if (screen === 'home') {
@@ -69,7 +114,7 @@ export default function Home() {
           <div className="w-full max-w-4xl bg-gradient-to-r from-sky-950/40 via-slate-900 to-indigo-950/40 border border-sky-500/20 rounded-3xl p-8 mb-8 text-center relative overflow-hidden shadow-2xl">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-semibold mb-4">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>APIs Conectadas: Meta Ads, BeeViral, RD Station, Google Ads</span>
+              <span>{sourcesBadge(health)}</span>
             </div>
 
             <h2 className="text-2xl md:text-3xl font-extrabold text-white mb-3">
@@ -159,15 +204,24 @@ export default function Home() {
         </main>
 
         <footer className="text-center py-6">
-          <p className="text-[11px] text-slate-600">
-            Período analisado: {report.start_date} até {report.end_date}
-          </p>
+          {hasReport && (
+            <p className="text-[11px] text-slate-600">
+              Período analisado: {report.start_date} até {report.end_date}
+            </p>
+          )}
+          {loadError && <p className="text-[11px] text-rose-400 mt-1">{loadError}</p>}
+          {sources.filter((s) => s.status !== 'live').map((s) => (
+            <p key={s.source} className="text-[11px] text-amber-400/80 mt-1">
+              {s.source}: {s.status === 'not_configured' ? 'não configurada' : s.status === 'simulated' ? 'dados simulados' : 'com erro'}
+              {s.detail ? ` — ${s.detail}` : ''}
+            </p>
+          ))}
         </footer>
 
         <TriggerAnalysisModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onRunSuccess={(newReport) => setReport(newReport)}
+          onRunSuccess={handleRunSuccess}
         />
       </div>
     );
@@ -232,7 +286,7 @@ export default function Home() {
         <TriggerAnalysisModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onRunSuccess={(newReport) => setReport(newReport)}
+          onRunSuccess={handleRunSuccess}
         />
       </div>
     );
@@ -297,7 +351,7 @@ export default function Home() {
         <TriggerAnalysisModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onRunSuccess={(newReport) => setReport(newReport)}
+          onRunSuccess={handleRunSuccess}
         />
       </div>
     );
@@ -392,7 +446,7 @@ export default function Home() {
         <TriggerAnalysisModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onRunSuccess={(newReport) => setReport(newReport)}
+          onRunSuccess={handleRunSuccess}
         />
       </div>
     );
@@ -422,6 +476,22 @@ export default function Home() {
   }
 
   return null;
+}
+
+function sourcesBadge(health: EngineHealth | null): string {
+  if (!health) return 'Verificando integrações...';
+  const names: Record<string, string> = {
+    meta_ads: 'Meta Ads',
+    google_ads: 'Google Ads',
+    rd_station: 'RD Station',
+    beeviral: 'BeeViral',
+    sheets_bi: 'Planilhas BI',
+    cv_crm: 'CV CRM',
+  };
+  const connected = Object.entries(health.sources_configured)
+    .filter(([, ok]) => ok)
+    .map(([key]) => names[key] ?? key);
+  return connected.length ? `APIs Conectadas: ${connected.join(', ')}` : 'Nenhuma API configurada';
 }
 
 function PageHeader({
