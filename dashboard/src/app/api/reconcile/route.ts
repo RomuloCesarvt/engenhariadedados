@@ -1,3 +1,4 @@
+import { engineFetch } from '../../../lib/engineFetch';
 /**
  * API Route — Reconciliação de Leads (Proxy para Engine Python Cloud).
  *
@@ -11,7 +12,7 @@ const ENGINE_API_URL = process.env.ENGINE_API_URL || 'http://localhost:8001';
 
 export async function GET() {
   try {
-    const response = await fetch(`${ENGINE_API_URL}/api/reports/latest`, {
+    const response = await engineFetch(`${ENGINE_API_URL}/api/reports/latest`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store', // Always fetch fresh
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 360000);
 
-    const response = await fetch(`${ENGINE_API_URL}/api/reconcile`, {
+    const response = await engineFetch(`${ENGINE_API_URL}/api/reconcile`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

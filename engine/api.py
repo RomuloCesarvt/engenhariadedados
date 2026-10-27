@@ -41,6 +41,25 @@ app = FastAPI(
     version="2.0.0",
 )
 
+ENGINE_API_KEY = os.getenv("ENGINE_API_KEY", "")
+
+
+@app.middleware("http")
+async def _exigir_chave(request, call_next):
+    """Em produção a engine só atende o dashboard: exige a chave compartilhada (ENGINE_API_KEY)."""
+    if ENGINE_API_KEY and request.method != "OPTIONS" and request.url.path != "/health":
+        if request.headers.get("x-engine-key", "") != ENGINE_API_KEY:
+            from fastapi.responses import JSONResponse
+
+            return JSONResponse({"detail": "Chave da engine ausente ou inválida."}, status_code=401)
+    return await call_next(request)
+
+
+@app.get("/health")
+def health():
+    return {"ok": True}
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.getenv("CORS_ALLOW_ORIGINS", "*").split(","),

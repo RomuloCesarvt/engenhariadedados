@@ -1,6 +1,7 @@
 /** Repasse das rotas do Next para a engine Python, preservando query string e mensagens de erro. */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { engineFetch } from './engineFetch';
 
 export const ENGINE_API_URL = process.env.ENGINE_API_URL || 'http://localhost:8001';
 
@@ -8,7 +9,7 @@ async function repassar(url: string, init: RequestInit, timeoutMs: number) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, { ...init, cache: 'no-store', signal: controller.signal });
+    const response = await engineFetch(url, { ...init, cache: 'no-store', signal: controller.signal });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
       return NextResponse.json({ error: body.detail || body.error || `Erro ${response.status} na engine.` }, { status: response.status });

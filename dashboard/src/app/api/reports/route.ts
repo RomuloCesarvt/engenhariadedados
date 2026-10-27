@@ -1,3 +1,4 @@
+import { engineFetch } from '../../../lib/engineFetch';
 /**
  * API Route — Histórico de Relatórios (Proxy para Engine Python Cloud).
  *
@@ -10,7 +11,7 @@ const ENGINE_API_URL = process.env.ENGINE_API_URL || 'http://localhost:8001';
 
 export async function GET() {
   try {
-    const response = await fetch(`${ENGINE_API_URL}/api/reports`, {
+    const response = await engineFetch(`${ENGINE_API_URL}/api/reports`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',

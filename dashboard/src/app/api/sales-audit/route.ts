@@ -1,3 +1,4 @@
+import { engineFetch } from '../../../lib/engineFetch';
 /**
  * API Route — Auditoria de Vendas (Proxy para a Engine Python).
  *
@@ -13,7 +14,7 @@ const ENGINE_API_URL = process.env.ENGINE_API_URL || 'http://localhost:8001';
 
 export async function GET() {
   try {
-    const response = await fetch(`${ENGINE_API_URL}/api/sales-audit/latest`, {
+    const response = await engineFetch(`${ENGINE_API_URL}/api/sales-audit/latest`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',

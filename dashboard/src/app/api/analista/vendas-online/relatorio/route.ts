@@ -1,3 +1,4 @@
+import { engineFetch } from '../../../../../lib/engineFetch';
 import { NextRequest, NextResponse } from 'next/server';
 import { ENGINE_API_URL } from '../../../../../lib/engineProxy';
 
@@ -7,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const url = `${ENGINE_API_URL}/api/analista/vendas-online/relatorio${request.nextUrl.search}`;
   try {
-    const resposta = await fetch(url, { cache: 'no-store' });
+    const resposta = await engineFetch(url, { cache: 'no-store' });
     if (!resposta.ok) {
       const corpo = await resposta.json().catch(() => ({}));
       return NextResponse.json({ error: corpo.detail || `Erro ${resposta.status} na engine.` }, { status: resposta.status });

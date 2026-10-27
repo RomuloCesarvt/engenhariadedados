@@ -1,3 +1,4 @@
+import { engineFetch } from '../../../lib/engineFetch';
 /**
  * API Route — Estado das integrações (Proxy para a Engine Python).
  *
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
   const timeoutId = setTimeout(() => controller.abort(), 120000);
 
   try {
-    const response = await fetch(`${ENGINE_API_URL}/api/integrations?live=${live}`, {
+    const response = await engineFetch(`${ENGINE_API_URL}/api/integrations?live=${live}`, {
       cache: 'no-store',
       signal: controller.signal,
     });

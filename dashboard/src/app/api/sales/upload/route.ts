@@ -1,3 +1,4 @@
+import { engineFetch } from '../../../../lib/engineFetch';
 /**
  * API Route — Planilha de vendas (Proxy para a Engine Python).
  *
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Nenhum arquivo enviado.' }, { status: 400 });
     }
 
-    const response = await fetch(`${ENGINE_API_URL}/api/sales/upload`, { method: 'POST', body: form });
+    const response = await engineFetch(`${ENGINE_API_URL}/api/sales/upload`, { method: 'POST', body: form });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       return NextResponse.json({ error: data.detail || 'Erro ao carregar a planilha.' }, { status: response.status });
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const response = await fetch(`${ENGINE_API_URL}/api/sales/upload/latest`, { cache: 'no-store' });
+    const response = await engineFetch(`${ENGINE_API_URL}/api/sales/upload/latest`, { cache: 'no-store' });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       return NextResponse.json({ error: data.detail || 'Nenhuma planilha carregada.' }, { status: response.status });
