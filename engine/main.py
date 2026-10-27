@@ -25,15 +25,7 @@ try:
 except ImportError:
     pass
 
-from engine.extractors import (
-    MetaAdsExtractor,
-    GoogleAdsExtractor,
-    RDStationExtractor,
-    BeeViralExtractor,
-    SheetsBIExtractor,
-    CVCRMExtractor,
-)
-from engine.reconciler import LeadReconciler
+from engine.pipeline import CVUnavailableError, run_reconciliation
 from engine.exporter import ReportExporter
 
 
@@ -54,34 +46,32 @@ def main():
     print(f"📅 Período: {start_dt.strftime('%Y-%m-%d')} até {end_dt.strftime('%Y-%m-%d')}")
     print("========================================================================")
 
-    # 1. Extração das fontes de dados
-    print("\n[1/4] Extraindo leads de todas as origens...")
-    meta_leads = MetaAdsExtractor().fetch_leads(start_dt, end_dt)
-    gads_leads = GoogleAdsExtractor().fetch_leads(start_dt, end_dt)
-    rd_leads = RDStationExtractor().fetch_leads(start_dt, end_dt)
-    bee_leads = BeeViralExtractor().fetch_leads(start_dt, end_dt)
-    sheets_leads = SheetsBIExtractor().fetch_leads(start_dt, end_dt)
+    # 1-3. Extração das fontes, extração do CV e reconciliação
+    print("\n[1/2] Extraindo, cruzando e reconciliando leads de todas as origens e do CRM Construtor de Vendas (CV)...")
+    try:
+        result = run_reconciliation(start_dt, end_dt)
+    except CVUnavailableError as e:
+        print(f"❌ {e}")
+        sys.exit(1)
 
-    all_source_leads = meta_leads + gads_leads + rd_leads + bee_leads + sheets_leads
-    print(f"  -> Total de leads capturados nas origens: {len(all_source_leads)}")
-    print(f"     - Meta Ads: {len(meta_leads)}")
-    print(f"     - Google Ads: {len(gads_leads)}")
-    print(f"     - RD Station: {len(rd_leads)}")
-    print(f"     - BeeViral: {len(bee_leads)}")
-    print(f"     - Planilhas BI: {len(sheets_leads)}")
-
-    # 2. Extração do CRM Construtor de Vendas (CV)
-    print("\n[2/4] Extraindo leads do CRM Construtor de Vendas (CV)...")
-    cv_leads = CVCRMExtractor().fetch_cv_leads(start_dt, end_dt)
-    print(f"  -> Total de leads encontrados no CV: {len(cv_leads)}")
-
-    # 3. Processamento de Reconciliação
-    print("\n[3/4] Executando Algoritmo Híbrido de Matching e Detecção de Divergências...")
-    reconciler = LeadReconciler(all_source_leads, cv_leads)
-    report = reconciler.reconcile(start_dt.strftime("%Y-%m-%d"), end_dt.strftime("%Y-%m-%d"))
+    report = result.report
+    print(f"  -> Total de leads capturados nas origens: {sum(result.leads_by_source.values())}")
+    labels = {
+        "meta_ads": "Meta Ads",
+        "google_ads": "Google Ads",
+        "rd_station": "RD Station",
+        "beeviral": "BeeViral",
+        "sheets_bi": "Planilhas BI",
+    }
+    for channel, count in result.leads_by_source.items():
+        print(f"     - {labels.get(channel, channel)}: {count}")
+    print(f"  -> Total de leads encontrados no CV: {result.total_cv_leads}")
+    for src in result.sources:
+        if src["status"] != "live":
+            print(f"  ⚠️  {src['source']}: {src['status']} ({src['detail']})")
 
     # 4. Exportação dos Relatórios
-    print("\n[4/4] Gerando relatórios e estatísticas...")
+    print("\n[2/2] Gerando relatórios e estatísticas...")
     exporter = ReportExporter(output_dir=args.output_dir)
     json_path = exporter.export_json(report)
     csv_path = exporter.export_divergences_csv(report)

@@ -6,7 +6,14 @@ import os
 from typing import List, Optional
 from datetime import datetime
 from engine.config import OriginChannel, LeadRecord
-from engine.extractors.base import BaseExtractor
+from engine.extractors.base import (
+    BaseExtractor,
+    STATUS_ERROR,
+    STATUS_LIVE,
+    STATUS_NOT_CONFIGURED,
+    STATUS_SIMULATED,
+    simulation_allowed,
+)
 from engine.normalizer import normalize_lead
 
 
@@ -26,6 +33,8 @@ class RDStationExtractor(BaseExtractor):
                     "end_date": end_date.strftime("%Y-%m-%d"),
                 }
                 res = httpx.get(url, headers=headers, params=params, timeout=10)
+                if res.status_code != 200:
+                    self._mark(STATUS_ERROR, f"HTTP {res.status_code} da API RD Station")
                 if res.status_code == 200:
                     data = res.json().get("conversions", []) or res.json().get("leads", [])
                     leads = []
@@ -41,11 +50,17 @@ class RDStationExtractor(BaseExtractor):
                             "utm_medium": "inbound",
                         }
                         leads.append(normalize_lead(raw, self.channel))
-                    if leads:
-                        print(f"  [RD Station API] Successfully fetched {len(leads)} real leads.")
-                        return leads
+                    print(f"  [RD Station API] Successfully fetched {len(leads)} real leads.")
+                    self._mark(STATUS_LIVE, count=len(leads))
+                    return leads
             except Exception as e:
                 print(f"  [RD Station API Warning] {e}. Falling back to simulation.")
+                self._mark(STATUS_ERROR, str(e))
+        else:
+            self._mark(STATUS_NOT_CONFIGURED, "RD_STATION_API_TOKEN ausente")
+
+        if not simulation_allowed():
+            return []
 
         # Fallback para dados de simulação
         leads = []
@@ -59,4 +74,5 @@ class RDStationExtractor(BaseExtractor):
             item["utm_source"] = "rd_station"
             item["utm_medium"] = "inbound"
             leads.append(normalize_lead(item, self.channel))
+        self._mark(STATUS_SIMULATED, self.detail, len(leads))
         return leads

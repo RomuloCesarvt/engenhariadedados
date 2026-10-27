@@ -6,7 +6,14 @@ import os
 from typing import List, Optional
 from datetime import datetime
 from engine.config import OriginChannel, LeadRecord
-from engine.extractors.base import BaseExtractor
+from engine.extractors.base import (
+    BaseExtractor,
+    STATUS_ERROR,
+    STATUS_LIVE,
+    STATUS_NOT_CONFIGURED,
+    STATUS_SIMULATED,
+    simulation_allowed,
+)
 from engine.normalizer import normalize_lead
 
 
@@ -26,6 +33,8 @@ class BeeViralExtractor(BaseExtractor):
                     "end_date": end_date.strftime("%Y-%m-%d"),
                 }
                 res = httpx.get(url, headers=headers, params=params, timeout=10)
+                if res.status_code != 200:
+                    self._mark(STATUS_ERROR, f"HTTP {res.status_code} da API BeeViral")
                 if res.status_code == 200:
                     data = res.json().get("data", [])
                     leads = []
@@ -41,11 +50,17 @@ class BeeViralExtractor(BaseExtractor):
                             "utm_medium": "referral",
                         }
                         leads.append(normalize_lead(raw, self.channel))
-                    if leads:
-                        print(f"  [BeeViral API] Successfully fetched {len(leads)} real referrals.")
-                        return leads
+                    print(f"  [BeeViral API] Successfully fetched {len(leads)} real referrals.")
+                    self._mark(STATUS_LIVE, count=len(leads))
+                    return leads
             except Exception as e:
                 print(f"  [BeeViral API Warning] {e}. Falling back to simulation.")
+                self._mark(STATUS_ERROR, str(e))
+        else:
+            self._mark(STATUS_NOT_CONFIGURED, "BEEVIRAL_API_KEY ausente")
+
+        if not simulation_allowed():
+            return []
 
         # Fallback para dados de simulação
         leads = []
@@ -59,4 +74,5 @@ class BeeViralExtractor(BaseExtractor):
             item["utm_source"] = "beeviral"
             item["utm_medium"] = "referral"
             leads.append(normalize_lead(item, self.channel))
+        self._mark(STATUS_SIMULATED, self.detail, len(leads))
         return leads

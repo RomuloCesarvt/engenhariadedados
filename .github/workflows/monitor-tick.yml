@@ -1,0 +1,32 @@
+name: Monitor ao Vivo (tick)
+
+# O plano Hobby da Vercel só permite cron diário. Este workflow chama o monitor a cada
+# 5 minutos (mínimo do GitHub Actions) para que leads sejam confirmados ou marcados como
+# perdidos mesmo com o dashboard fechado.
+#
+# Secrets necessários (Settings > Secrets and variables > Actions):
+#   ENGINE_URL      ex.: https://engenhariadedados-engine.vercel.app
+#   ENGINE_API_KEY  a mesma chave configurada no projeto do motor na Vercel
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Avançar um ciclo do monitor
+        env:
+          ENGINE_URL: ${{ secrets.ENGINE_URL }}
+          ENGINE_API_KEY: ${{ secrets.ENGINE_API_KEY }}
+        run: |
+          if [ -z "$ENGINE_URL" ] || [ -z "$ENGINE_API_KEY" ]; then
+            echo "::warning::ENGINE_URL / ENGINE_API_KEY não configurados; nada a fazer."
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error --max-time 60 \
+            -X POST -H "Authorization: Bearer $ENGINE_API_KEY" \
+            "${ENGINE_URL%/}/api/monitor/tick" \
+            | python3 -c "import sys,json; d=json.load(sys.stdin); print('stats:', d['stats']); print('fontes:', [(s['source'], s['status']) for s in d['sources']])"

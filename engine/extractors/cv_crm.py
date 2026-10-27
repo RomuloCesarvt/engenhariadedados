@@ -7,7 +7,14 @@ import os
 from typing import List, Optional
 from datetime import datetime
 from engine.config import CVLeadRecord
-from engine.extractors.base import BaseCVExtractor
+from engine.extractors.base import (
+    BaseCVExtractor,
+    STATUS_ERROR,
+    STATUS_LIVE,
+    STATUS_NOT_CONFIGURED,
+    STATUS_SIMULATED,
+    simulation_allowed,
+)
 from engine.normalizer import normalize_cv_lead
 
 
@@ -44,7 +51,9 @@ class CVCRMExtractor(BaseCVExtractor):
                 }
 
                 response = httpx.get(f"{base_url}/api/v1/comercial/leads", headers=headers, params=params, timeout=15)
-                
+
+                if response.status_code != 200:
+                    self._mark(STATUS_ERROR, f"HTTP {response.status_code} da API do CV")
                 if response.status_code == 200:
                     payload = response.json()
                     leads_raw = payload.get("leads", []) or payload.get("data", []) or payload
@@ -53,11 +62,18 @@ class CVCRMExtractor(BaseCVExtractor):
                         cv_leads = []
                         for item in leads_raw:
                             cv_leads.append(normalize_cv_lead(item))
-                        if cv_leads:
-                            print(f"  [CV CRM API] Successfully fetched {len(cv_leads)} real leads from CV API.")
-                            return cv_leads
+                        print(f"  [CV CRM API] Successfully fetched {len(cv_leads)} real leads from CV API.")
+                        self._mark(STATUS_LIVE, count=len(cv_leads))
+                        return cv_leads
+                    self._mark(STATUS_ERROR, "Resposta do CV em formato inesperado")
             except Exception as e:
                 print(f"  [CV CRM API Warning] Could not connect to CV API ({e}). Falling back to simulation.")
+                self._mark(STATUS_ERROR, str(e))
+        else:
+            self._mark(STATUS_NOT_CONFIGURED, "CV_CRM_URL / CV_CRM_TOKEN ausentes")
+
+        if not simulation_allowed():
+            return []
 
         # Fallback para dados de simulação
         cv_leads = []
@@ -83,4 +99,5 @@ class CVCRMExtractor(BaseCVExtractor):
 
         for item in sample_cv:
             cv_leads.append(normalize_cv_lead(item))
+        self._mark(STATUS_SIMULATED, self.detail, len(cv_leads))
         return cv_leads
