@@ -439,3 +439,16 @@ com exportação em CSV.
 | `POST /api/reconcile` | Reconciliação + auditoria de vendas. Aceita `salesFile`, `attributionWindowDays` e `skipSalesAudit`. |
 | `GET /api/sales-audit/latest` | Apenas o bloco de auditoria de vendas do relatório mais recente. |
 | `GET /api/empreendimentos` | Empreendimentos do relatório mais recente, com leads, vendas e situação. |
+
+---
+
+## ☁️ Publicação em nuvem
+
+| Parte | Onde | Observação |
+| :--- | :--- | :--- |
+| Dashboard (Next.js, pasta `dashboard/`) | Vercel, projeto `engenhariadedados` | Protegido por senha (`DASHBOARD_PASSWORD`) |
+| Engine (FastAPI, `engine.api:app`) | Render, serviço `engenhariadedados-engine` | Só atende com o cabeçalho `x-engine-key` (`ENGINE_API_KEY`) |
+
+Variáveis na Vercel: `ENGINE_API_URL`, `ENGINE_API_KEY`, `DASHBOARD_PASSWORD`.
+Variáveis no Render: `ENGINE_API_KEY` e as credenciais das integrações (`CV_CRM_*`, `META_*`,
+`GOOGLE_ADS_*`, `RD_STATION_*`, `BEEVIRAL_API_KEY`, GA4).
