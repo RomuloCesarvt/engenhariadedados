@@ -1,7 +1,7 @@
 /**
  * Protege todo o dashboard com senha (HTTP Basic). Os dados exibidos vêm de leads, vendas
  * e custos de mídia, então o site não pode ficar público.
- * Defina DASHBOARD_PASSWORD no projeto da Vercel. Qualquer nome de usuário é aceito.
+ * Opcional: defina DASHBOARD_PASSWORD no projeto da Vercel para exigir senha (qualquer usuário).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -16,12 +16,8 @@ function safeEqual(a: string, b: string): boolean {
 export function middleware(request: NextRequest) {
   const password = process.env.DASHBOARD_PASSWORD;
 
-  if (!password) {
-    if (process.env.NODE_ENV === 'production') {
-      return new NextResponse('DASHBOARD_PASSWORD não está configurada no projeto.', { status: 503 });
-    }
-    return NextResponse.next(); // desenvolvimento local
-  }
+  // Sem DASHBOARD_PASSWORD o dashboard abre sem login.
+  if (!password) return NextResponse.next();
 
   const [scheme, encoded] = (request.headers.get('authorization') ?? '').split(' ');
   if (scheme === 'Basic' && encoded) {
